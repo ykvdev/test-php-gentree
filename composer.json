@@ -1,0 +1,23 @@
+{
+    "name": "atoumus/test_php_gentree",
+    "type": "project",
+    "authors": [
+        {
+            "name": "YKV",
+            "email": "ykvdev@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.1",
+        "ext-json": "*",
+        "symfony/console": "^5.4",
+        "php-di/php-di": "^6.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\": "app/"
+        }
+    },
+    "require-dev": {
+    }
+}

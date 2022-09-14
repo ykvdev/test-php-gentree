@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+use \Symfony\Component\Console\Application;
+use \app\console\commands\GenTree;
+
+require __DIR__ . '/../../vendor/autoload.php';
+
+$di = new DI\Container();
+
+$app = new Application('Tree Generator', '1.0');
+$app->addCommands([$di->get(GenTree::class)]);
+$app->run();
