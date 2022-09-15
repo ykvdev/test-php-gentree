@@ -6,6 +6,8 @@ use LogicException;
 
 class JsonFileAdapter extends AbstractFileAdapter
 {
+    private const INDENT_SPACES_NUMBER = 4;
+
     /**
      * @inheritDoc
      */
@@ -29,7 +31,7 @@ class JsonFileAdapter extends AbstractFileAdapter
                 $this->writeFile($val, $this->incrementIndent($indent));
             }
 
-            $this->writeLine($endSymbol, $indent);
+            $this->writeLine($endSymbol, $indent, -2);
         }
     }
 
@@ -42,5 +44,14 @@ class JsonFileAdapter extends AbstractFileAdapter
     {
         return json_encode($field, JSON_UNESCAPED_UNICODE)
             . ': ' . json_encode($value, JSON_UNESCAPED_UNICODE) . ',';
+    }
+
+    /**
+     * @param int $indent
+     * @return int
+     */
+    private function incrementIndent(int $indent = 0): int
+    {
+        return $indent + self::INDENT_SPACES_NUMBER;
     }
 }

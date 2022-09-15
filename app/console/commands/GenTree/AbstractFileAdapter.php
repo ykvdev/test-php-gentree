@@ -9,11 +9,9 @@ use LogicException;
 abstract class AbstractFileAdapter
 {
     public const MODE_READ = 'r';
-    public const MODE_WRITE = 'a';
+    public const MODE_WRITE = 'w';
 
-    private const INDENT_SPACES_NUMBER = 4;
-
-    private const FILE_ADAPTERS = [
+    private const ADAPTERS = [
         'csv' => ['class' => CsvFileAdapter::class, 'mimeType' => 'text/csv'],
         'json' => ['class' => JsonFileAdapter::class, 'mimeType' => 'application/json'],
     ];
@@ -35,7 +33,7 @@ abstract class AbstractFileAdapter
     public static function factory(string $path, string $mode): self
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if(!($adapter = self::FILE_ADAPTERS[$ext] ?? null)) {
+        if(!($adapter = self::ADAPTERS[$ext] ?? null)) {
             throw new LogicException("No adapter for file \"$path\"");
         }
 
@@ -114,24 +112,20 @@ abstract class AbstractFileAdapter
     /**
      * @param string|int|float $data
      * @param int $indent
+     * @param int|null $position
      * @return void
      */
-    protected function writeLine($data, int $indent = 0): void
+    protected function writeLine($data, int $indent = 0, ?int $position = null): void
     {
+        if(fseek($this->handler, $position, SEEK_CUR) === -1) {
+            throw new LogicException("Set file \"$this->path\" position $position failed");
+        }
+
         if(fputs($this->handler, str_repeat(' ', $indent) . $data . PHP_EOL) === false) {
             throw new LogicException("Write file \"$this->path\" failed");
         }
 
         fflush($this->handler);
-    }
-
-    /**
-     * @param int $indent
-     * @return int
-     */
-    protected function incrementIndent(int $indent = 0): int
-    {
-        return $indent + self::INDENT_SPACES_NUMBER;
     }
 
     public function __destruct()
