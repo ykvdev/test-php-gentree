@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  php-cli:
+    build: ./configs/php-cli
+    user: www-data
+    restart: always
+    volumes:
+      - ..:/var/www/test_php_gentree
+      - ./configs/php-cli/custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
+    working_dir: /var/www/test_php_gentree
+    environment:
+      APPLICATION_ENV: developmet
+    networks:
+      - default
+    ports:
+      - "8000:8000" # For PHP built-in server accessing (HOST:CONTAINER)
+
+networks:
+  default:
+    driver: bridge
