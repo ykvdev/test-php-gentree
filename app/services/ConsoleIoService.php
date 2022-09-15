@@ -2,8 +2,11 @@
 
 namespace app\services;
 
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class ConsoleIoService
 {
@@ -12,6 +15,9 @@ class ConsoleIoService
 
     /** @var string */
     private $commandName;
+
+    /** @var Command */
+    private $command;
 
     /** @var InputInterface */
     private $input;
@@ -27,6 +33,12 @@ class ConsoleIoService
     public function setCommandName(string $commandName): self
     {
         $this->commandName = $commandName;
+        return $this;
+    }
+
+    public function setCommand(Command $command): self
+    {
+        $this->command = $command;
         return $this;
     }
 
@@ -52,6 +64,17 @@ class ConsoleIoService
     {
         $msg = $this->formatMessage($msg, true);
         $this->outputMessage($msg, $params, true);
+    }
+
+    /**
+     * @param string $question
+     * @return bool
+     */
+    public function outputQuestion(string $question): bool
+    {
+        /** @var QuestionHelper $questionHelper */
+        $questionHelper = $this->command->getHelper('question');
+        return $questionHelper->ask($this->input, $this->output, new ConfirmationQuestion($question));
     }
 
     private function formatMessage(string $msg, bool $isError = false): string

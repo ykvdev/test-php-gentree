@@ -48,7 +48,7 @@ class GenTree extends Command
      */
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
-        $this->io->setCommandName($this->getName())->setInput($input)->setOutput($output);
+        $this->io->setCommandName($this->getName())->setCommand($this)->setInput($input)->setOutput($output);
         $this->inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
         $this->outputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
     }
@@ -56,18 +56,19 @@ class GenTree extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $this->io->outputInfoMessage('{cmd} started with group {gid}:{group} and user {uid}:{user}', [
-                '{cmd}' => self::COMMAND_DESC,
-                '{gid}' => getmygid(),
-                '{group}' => posix_getgrgid(posix_getgid())['name'],
-                '{uid}' => getmyuid(),
-                '{user}' => get_current_user(),
-            ]);
+            $this->io->outputInfoMessage(implode(PHP_EOL, [
+                strtr('{cmd} started with:', ['{cmd}' => self::COMMAND_DESC]),
+                strtr('Group: {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
+                strtr('User: {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
+                strtr('Input file: {inputFilePath}', ['inputFilePath' => $this->inputFilePath]),
+                strtr('Output file: {outputFilePath}', ['outputFilePath' => $this->outputFilePath]),
+            ]));
 
-            $this->io->outputInfoMessage("Opening input file: \"$this->inputFilePath\"");
+            if(is_file($this->outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this?')) {
+                throw new LogicException('Output file already exists, specify other file name');
+            }
+
             $inputFile = AbstractFileAdapter::factory($this->inputFilePath,AbstractFileAdapter::MODE_READ);
-
-            $this->io->outputInfoMessage("Opening output file: \"$this->outputFilePath\"");
             $outputFile = AbstractFileAdapter::factory($this->outputFilePath,AbstractFileAdapter::MODE_WRITE);
 
             $this->io->outputInfoMessage('Reading input file data');
@@ -84,7 +85,7 @@ class GenTree extends Command
             $this->io->outputErrorMessage($e->getMessage());
             return Command::INVALID;
         } catch (Throwable $e) {
-            $this->io->outputErrorMessage(PHP_EOL . '(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
+            $this->io->outputErrorMessage('(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
             return Command::FAILURE;
         }
 
