@@ -36,10 +36,20 @@ class ConsoleIoService
         return $this;
     }
 
+    public function getInput(): InputInterface
+    {
+        return $this->input;
+    }
+
     public function setOutput(OutputInterface $output): self
     {
         $this->output = $output;
         return $this;
+    }
+
+    public function getOutput(): OutputInterface
+    {
+        return $this->output;
     }
 
     public function outputInfoMessage(string $msg): void
