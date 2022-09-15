@@ -25,41 +25,70 @@ class ConsoleIoService
     /** @var OutputInterface */
     private $output;
 
+    /**
+     * @param ConfigService $config
+     */
     public function __construct(ConfigService $config)
     {
         $this->config = $config;
     }
 
+    /**
+     * @param string $commandName
+     * @return $this
+     */
     public function setCommandName(string $commandName): self
     {
         $this->commandName = $commandName;
         return $this;
     }
 
+    /**
+     * @param Command $command
+     * @return $this
+     */
     public function setCommand(Command $command): self
     {
         $this->command = $command;
         return $this;
     }
 
+    /**
+     * @param InputInterface $input
+     * @return $this
+     */
     public function setInput(InputInterface $input): self
     {
         $this->input = $input;
         return $this;
     }
 
+    /**
+     * @param OutputInterface $output
+     * @return $this
+     */
     public function setOutput(OutputInterface $output): self
     {
         $this->output = $output;
         return $this;
     }
 
+    /**
+     * @param string $msg
+     * @param array|null $params
+     * @return void
+     */
     public function outputInfoMessage(string $msg, ?array $params = null): void
     {
         $msg = $this->formatMessage($msg);
         $this->outputMessage($msg, $params, false);
     }
 
+    /**
+     * @param string $msg
+     * @param array|null $params
+     * @return void
+     */
     public function outputErrorMessage(string $msg, ?array $params = null): void
     {
         $msg = $this->formatMessage($msg, true);
@@ -77,6 +106,11 @@ class ConsoleIoService
         return $questionHelper->ask($this->input, $this->output, new ConfirmationQuestion($question));
     }
 
+    /**
+     * @param string $msg
+     * @param bool $isError
+     * @return string
+     */
     private function formatMessage(string $msg, bool $isError = false): string
     {
         return strtr('{datetime} [{type}] {msg} / CPU {cpu}% / {memUsage} Mb of {memAvailable} Mb / Peak {memPeak} Mb', [
@@ -90,6 +124,12 @@ class ConsoleIoService
         ]);
     }
 
+    /**
+     * @param string $msg
+     * @param array|null $params
+     * @param bool|null $isError
+     * @return void
+     */
     private function outputMessage(string $msg, ?array $params = null, ?bool $isError = null): void
     {
         $msg = $params ? strtr($msg, $params) : $msg;
@@ -97,6 +137,10 @@ class ConsoleIoService
         $this->writeLog($msg);
     }
 
+    /**
+     * @param string $msg
+     * @return void
+     */
     private function writeLog(string $msg): void
     {
         $path = strtr($this->config->get('services.console_io.logs_path'), ['{cmd}' => $this->commandName]);

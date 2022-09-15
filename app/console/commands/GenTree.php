@@ -28,12 +28,18 @@ class GenTree extends Command
     /** @var string */
     private $outputFilePath;
 
+    /**
+     * @param ConsoleIoService $io
+     */
     public function __construct(ConsoleIoService $io)
     {
         parent::__construct();
         $this->io = $io;
     }
 
+    /**
+     * @return void
+     */
     protected function configure(): void
     {
         $this->setName(self::COMMAND_NAME)
@@ -53,6 +59,11 @@ class GenTree extends Command
         $this->outputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
