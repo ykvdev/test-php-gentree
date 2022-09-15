@@ -2,25 +2,34 @@
 
 namespace app\console\commands;
 
+use app\console\commands\GenTree\AbstractFileAdapter;
 use app\services\ConsoleIoService;
+use Generator;
+use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 class GenTree extends Command
 {
     public const COMMAND_NAME = 'gentree',
-        OPTION_INPUT = 'input',
-        OPTION_OUTPUT = 'output';
+        OPTION_INPUT_FILE_PATH = 'input',
+        OPTION_OUTPUT_FILE_PATH = 'output';
 
     /** @var ConsoleIoService */
     private $io;
 
+    /** @var string */
+    private $inputFilePath;
+
+    /** @var string */
+    private $outputFilePath;
+
     public function __construct(ConsoleIoService $io)
     {
         parent::__construct();
-
         $this->io = $io;
     }
 
@@ -28,8 +37,8 @@ class GenTree extends Command
     {
         $this->setName(self::COMMAND_NAME)
             ->setDescription('Generate tree by CSV file')
-            ->addOption(self::OPTION_INPUT, 'i', InputOption::VALUE_REQUIRED, 'Source CSV file')
-            ->addOption(self::OPTION_OUTPUT, 'o', InputOption::VALUE_REQUIRED, 'Destination JSON file');
+            ->addOption(self::OPTION_INPUT_FILE_PATH, 'i', InputOption::VALUE_REQUIRED, 'Source CSV file')
+            ->addOption(self::OPTION_OUTPUT_FILE_PATH, 'o', InputOption::VALUE_REQUIRED, 'Destination JSON file');
     }
 
     /**
@@ -39,38 +48,33 @@ class GenTree extends Command
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
         $this->io->setCommandName($this->getName())->setInput($input)->setOutput($output);
+        $this->inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
+        $this->outputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $inputFilePath = $this->io->getInput()->getOption(self::OPTION_INPUT);
+            $this->io->outputInfoMessage("Opening input file: \"$this->inputFilePath\"");
+            $inputFile = AbstractFileAdapter::factory($this->inputFilePath,AbstractFileAdapter::MODE_READ);
 
-            $outputFilePath = $this->io->getInput()->getOption(self::OPTION_INPUT);
-            if(!is_dir(dirname($outputFilePath))) {
-                throw new \LogicException('Output file not found');
-            }
+            $this->io->outputInfoMessage("Opening output file: \"$this->outputFilePath\"");
+            $outputFile = AbstractFileAdapter::factory($this->outputFilePath,AbstractFileAdapter::MODE_WRITE);
 
+            $this->io->outputInfoMessage('Reading input file data');
+            $inputFileData = $inputFile->readFile();
 
+            $this->io->outputInfoMessage('Making tree by input data');
+            $tree = $this->makeTree($inputFileData);
 
-            //$availableSymbols = $this->config->get('services.rates_api.available_symbols');
+            $this->io->outputInfoMessage('Writing tree into output file');
+            $outputFile->writeFile($tree);
 
-            /*$this->io->info('Start');
-
-            $rates = $this->getRates();
-            $this->io->info('Received rates: ' . var_export($rates, true));
-
-            $this->saveRates($rates);
-            $this->io->info('Rates saved');
-
-            $this->io->info('End');*/
-
-            // invalid options or missing arguments
-            //return Command::INVALID
-        } catch (\LogicException $e) {
+            $this->io->outputInfoMessage('The End');
+        } catch (LogicException $e) {
             $this->io->outputErrorMessage($e->getMessage());
             return Command::INVALID;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->io->outputErrorMessage(PHP_EOL . '(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
             return Command::FAILURE;
         }
@@ -78,26 +82,13 @@ class GenTree extends Command
         return Command::SUCCESS;
     }
 
-    private function readCsvFile(string $csvFilePath): \Generator
-    {
-        $lineNumber = 0;
-        $file = $this->fopen($csvFilePath, 'r');
-        while (($row = fgetcsv($file, null, ';')) !== false) {
-            if($lineNumber++ != 0) {
-                [$uniqueItemName, $type, $parent, $relation] = $row;
-                yield [
-                    'itemName' => trim($uniqueItemName),
-                    'type' => trim($type),
-                    'parent' => trim($parent) ?? null,
-                    'relation' => trim($relation) ?? null,
-                ];
-            }
-        }
-
-        fclose($file);
-    }
-
-    private function makeTree(\Generator $generator, ?string $parent = null, ?string $relation = null): \Generator
+    /**
+     * @param Generator $generator
+     * @param string|null $parent
+     * @param string|null $relation
+     * @return Generator
+     */
+    private function makeTree(Generator $generator, ?string $parent = null, ?string $relation = null): Generator
     {
         foreach ($generator as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
@@ -107,61 +98,6 @@ class GenTree extends Command
                     'children' => $this->makeTree($generator, $row['itemName'], $row['relation']),
                 ];
             }
-        }
-    }
-
-    private function writeJsonFile($file, \Generator $tree, int $indent = 0): void
-    {
-        if(is_string($file)) {
-            $dirPath = dirname($file);
-            if(!is_dir($dirPath)) {
-                throw new \LogicException("Directory $dirPath not found");
-            }
-
-            $fileNeedToClose = true;
-            $file = $this->fopen($file, 'a');
-        }
-
-        foreach ($tree as $key => $data) {
-            $coverSymbols = is_numeric($key) ? ['[', ']'] : ['{', '}'];
-            $this->fwriteln($file, $coverSymbols[0], $indent);
-            if(is_scalar($data)) {
-                $this->fwriteln($file, json_encode($key, JSON_UNESCAPED_UNICODE)
-                    . ': ' . json_encode($data, JSON_UNESCAPED_UNICODE) . ',', $indent);
-            } else {
-                $this->writeJsonFile($file, $data, $indent + 4);
-            }
-            $this->fwriteln($file, $coverSymbols[1], $indent);
-        }
-
-        if(isset($fileNeedToClose)) {
-            fclose($file);
-        }
-    }
-
-    private function fopen(string $path, string $mode)
-    {
-        if($mode == 'r' && !file_exists($path)) {
-            throw new \LogicException("File $path not found");
-        }
-
-        if (($file = fopen($path, $mode)) === false) {
-            throw new \LogicException("File $path open failed");
-        }
-
-        return $file;
-    }
-
-    /**
-     * @param resource $handler
-     * @param string|int|float $data
-     * @param int $indent
-     * @return void
-     */
-    private function fwriteln($handler, $data, int $indent = 0): void
-    {
-        if(fwrite($handler, str_repeat(' ', $indent) . $data . PHP_EOL) === false) {
-            throw new \LogicException('Write file ' . stream_get_meta_data($handler)['uri'] . ' failed');
         }
     }
 }
