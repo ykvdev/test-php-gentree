@@ -15,6 +15,7 @@ use Throwable;
 class GenTree extends Command
 {
     public const COMMAND_NAME = 'gentree',
+        COMMAND_DESC = 'Tree Generator',
         OPTION_INPUT_FILE_PATH = 'input',
         OPTION_OUTPUT_FILE_PATH = 'output';
 
@@ -36,7 +37,7 @@ class GenTree extends Command
     protected function configure(): void
     {
         $this->setName(self::COMMAND_NAME)
-            ->setDescription('Generate tree by CSV file')
+            ->setDescription(self::COMMAND_DESC)
             ->addOption(self::OPTION_INPUT_FILE_PATH, 'i', InputOption::VALUE_REQUIRED, 'Source CSV file')
             ->addOption(self::OPTION_OUTPUT_FILE_PATH, 'o', InputOption::VALUE_REQUIRED, 'Destination JSON file');
     }
@@ -55,6 +56,14 @@ class GenTree extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
+            $this->io->outputInfoMessage('{cmd} started with group {gid}:{group} and user {uid}:{user}', [
+                '{cmd}' => self::COMMAND_DESC,
+                '{gid}' => getmygid(),
+                '{group}' => posix_getgrgid(posix_getgid())['name'],
+                '{uid}' => getmyuid(),
+                '{user}' => get_current_user(),
+            ]);
+
             $this->io->outputInfoMessage("Opening input file: \"$this->inputFilePath\"");
             $inputFile = AbstractFileAdapter::factory($this->inputFilePath,AbstractFileAdapter::MODE_READ);
 
