@@ -10,11 +10,13 @@ class HelpersService
      */
     public static function formatMemoryBytes(int $memory): string
     {
-        $memoryFormatted = $memory;
+        $memoryFormatted = $memory . ' B';
         foreach (['B', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb'] as $i => $unit) {
             $memory = $memory / ($i == 0 ? 1 : 1024);
             if($memory < 1024 || $unit == 'Yb') {
-                $memoryFormatted = round($memory, 2) . ' ' . $unit;
+                $memoryFormatted = round($memory, 2);
+                $memoryFormatted = number_format($memoryFormatted, 2, '.', '') . ' ' . $unit;
+                break;
             }
         }
 

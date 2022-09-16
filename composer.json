@@ -12,8 +12,8 @@
         "ext-json": "*",
         "ext-fileinfo": "*",
         "ext-posix": "*",
-        "symfony/console": "^5.4",
-        "php-di/php-di": "^6.3"
+        "symfony/console": "^4.4",
+        "php-di/php-di": "^6.0"
     },
     "autoload": {
         "psr-4": {

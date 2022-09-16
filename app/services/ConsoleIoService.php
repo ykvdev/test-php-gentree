@@ -96,13 +96,12 @@ class ConsoleIoService
      */
     private function outputMessage(string $msg, bool $isError = false): void
     {
-        $msg = strtr('{datetime} [{type}] {msg} / CPU {cpu}% / {memUsage} of {memAvailable} / Peak {memPeak}', [
+        $msg = strtr('{datetime} [{type}] {msg} / CPU {cpu}% / Memory usage {memUsage} / Memory peak {memPeak}', [
             '{datetime}' => date('Y-m-d H:i:s'),
             '{type}' => $isError ? 'ERR' : 'INF',
             '{msg}' => $msg,
             '{cpu}' => sys_getloadavg()[0],
             '{memUsage}' => HelpersService::formatMemoryBytes(memory_get_usage()),
-            '{memAvailable}' => HelpersService::formatMemoryBytes(ini_get('memory_limit')),
             '{memPeak}' => HelpersService::formatMemoryBytes(memory_get_peak_usage()),
         ]);
 

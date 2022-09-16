@@ -67,13 +67,17 @@ class GenTree extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $this->io->outputInfoMessage(implode(PHP_EOL, [
-                strtr('{cmd} started with:', ['{cmd}' => self::COMMAND_DESC]),
-                strtr('Group: {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
-                strtr('User: {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
-                strtr('Input file: {inputFilePath}', ['inputFilePath' => $this->inputFilePath]),
-                strtr('Output file: {outputFilePath}', ['outputFilePath' => $this->outputFilePath]),
+            $this->io->outputInfoMessage(implode(' / ', [
+                strtr('{cmd} started', ['{cmd}' => self::COMMAND_DESC]),
+                strtr('Group {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
+                strtr('User {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
+                strtr('Input file {inputFilePath}', ['{inputFilePath}' => $this->inputFilePath ?? '(none)']),
+                strtr('Output file {outputFilePath}', ['{outputFilePath}' => $this->outputFilePath ?? '(none)']),
             ]));
+
+            if(!$this->inputFilePath || !$this->outputFilePath) {
+                throw new LogicException('You must specify -i and -o params with file paths');
+            }
 
             if(is_file($this->outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this?')) {
                 throw new LogicException('Output file already exists, specify other file name');
@@ -92,13 +96,13 @@ class GenTree extends Command
             $outputFile->writeFile($tree);
 
             $this->io->outputInfoMessage('The End');
-            return Command::SUCCESS;
+            return 0;
         } catch (LogicException $e) {
             $this->io->outputErrorMessage($e->getMessage());
-            return Command::INVALID;
+            return 2;
         } catch (Throwable $e) {
             $this->io->outputErrorMessage('(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
-            return Command::FAILURE;
+            return 1;
         }
     }
 
