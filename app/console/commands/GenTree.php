@@ -86,11 +86,8 @@ class GenTree extends Command
             $inputFile = AbstractFileAdapter::factory($this->inputFilePath,AbstractFileAdapter::MODE_READ);
             $outputFile = AbstractFileAdapter::factory($this->outputFilePath,AbstractFileAdapter::MODE_WRITE);
 
-            $this->io->outputInfoMessage('Reading input file data');
-            $inputFileData = $inputFile->readFile();
-
-            $this->io->outputInfoMessage('Making tree by input data');
-            $tree = $this->makeTree($inputFileData);
+            $this->io->outputInfoMessage('Reading input file data and making tree');
+            $tree = $this->makeTreeByCsvFile($inputFile);
 
             $this->io->outputInfoMessage('Writing tree into output file');
             $outputFile->writeFile($tree);
@@ -101,25 +98,29 @@ class GenTree extends Command
             $this->io->outputErrorMessage($e->getMessage());
             return 2;
         } catch (Throwable $e) {
-            $this->io->outputErrorMessage('(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
+            $this->io->outputErrorMessage(
+                '(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL
+                . $e->getFile() . ':' . $e->getLine() . PHP_EOL
+                . $e->getTraceAsString()
+            );
             return 1;
         }
     }
 
     /**
-     * @param Generator $generator
+     * @param AbstractFileAdapter $csvFileAdapter
      * @param string|null $parent
      * @param string|null $relation
      * @return Generator
      */
-    private function makeTree(Generator $generator, ?string $parent = null, ?string $relation = null): Generator
+    private function makeTreeByCsvFile(AbstractFileAdapter $csvFileAdapter, ?string $parent = null, ?string $relation = null): Generator
     {
-        foreach ($generator as $row) {
+        foreach ($csvFileAdapter->readFile() as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
-                yield [
+                yield from [
                     'itemName' => $row['itemName'],
                     'parent' => $row['parent'],
-                    'children' => $this->makeTree($generator, $row['itemName'], $row['relation']),
+                    'children' => $this->makeTreeByCsvFile($csvFileAdapter, $row['itemName'], $row['relation']),
                 ];
             }
         }
