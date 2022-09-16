@@ -12,8 +12,8 @@ abstract class AbstractFileAdapter
     public const MODE_WRITE = 'w';
 
     private const ADAPTERS = [
-        'csv' => ['class' => CsvFileAdapter::class, 'mimeType' => 'text/csv'],
-        'json' => ['class' => JsonFileAdapter::class, 'mimeType' => 'application/json'],
+        CsvFileAdapter::EXTENSION => CsvFileAdapter::class,
+        JsonFileAdapter::EXTENSION => JsonFileAdapter::class,
     ];
 
     /** @var string */
@@ -22,7 +22,7 @@ abstract class AbstractFileAdapter
     /** @var string */
     private $mode;
 
-    /** @var resource */
+    /** @var resource|null */
     private $handler;
 
     /**
@@ -34,15 +34,10 @@ abstract class AbstractFileAdapter
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if(!($adapter = self::ADAPTERS[$ext] ?? null)) {
-            throw new LogicException("No adapter for file \"$path\"");
+            throw new LogicException("No adapter found for file \"$path\"");
         }
 
-        $mimeType = (new finfo(FILEINFO_MIME_TYPE))->file($path);
-        if($mimeType != $adapter['mimeType']) {
-            throw new LogicException("File \"$path\" MIME-type is wrong");
-        }
-
-        return new $adapter['class']($path, $mode);
+        return new $adapter($path, $mode);
     }
 
     /**
@@ -54,6 +49,10 @@ abstract class AbstractFileAdapter
         $this->path = $path;
         $this->mode = $mode;
 
+        if(!in_array($mode, static::MODES)) {
+            throw new LogicException("Mode \"$mode\" for file \"$this->path\" is not available");
+        }
+
         switch ($mode) {
             case self::MODE_READ:
                 clearstatcache(true, $path);
@@ -64,6 +63,11 @@ abstract class AbstractFileAdapter
 
                 if(!is_readable($path)) {
                     throw new LogicException("File \"$path\" is not readable");
+                }
+
+                $mimeType = (new finfo(FILEINFO_MIME_TYPE))->file($path);
+                if(!in_array($mimeType, static::MIME_TYPES)) {
+                    throw new LogicException("File \"$path\" MIME-type is wrong");
                 }
                 break;
 
@@ -130,6 +134,8 @@ abstract class AbstractFileAdapter
 
     public function __destruct()
     {
-        fclose($this->handler);
+        if(is_resource($this->handler)) {
+            fclose($this->handler);
+        }
     }
 }

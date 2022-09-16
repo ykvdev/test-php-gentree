@@ -79,7 +79,7 @@ class GenTree extends Command
                 throw new LogicException('You must specify -i and -o params with file paths');
             }
 
-            if(is_file($this->outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this?')) {
+            if(is_file($this->outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this (y/n)? ')) {
                 throw new LogicException('Output file already exists, specify other file name');
             }
 

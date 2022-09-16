@@ -7,6 +7,10 @@ use LogicException;
 
 class CsvFileAdapter extends AbstractFileAdapter
 {
+    protected const EXTENSION = 'csv',
+        MIME_TYPES = ['text/csv', 'text/plain'],
+        MODES = [self::MODE_READ];
+
     /**
      * @inheritDoc
      */

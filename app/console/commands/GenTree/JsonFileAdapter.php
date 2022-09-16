@@ -6,6 +6,10 @@ use LogicException;
 
 class JsonFileAdapter extends AbstractFileAdapter
 {
+    protected const EXTENSION = 'json',
+        MIME_TYPES = ['application/json'],
+        MODES = [self::MODE_WRITE];
+
     private const INDENT_SPACES_NUMBER = 4;
 
     /**
