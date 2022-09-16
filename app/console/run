@@ -4,9 +4,9 @@
 namespace app\console;
 
 use DI\Container;
-use \Symfony\Component\Console\Application;
-use \app\console\commands\GenTree;
-use \Symfony\Component\Console\CommandLoader\FactoryCommandLoader;
+use Symfony\Component\Console\Application;
+use app\console\commands\GenTree;
+use Symfony\Component\Console\CommandLoader\FactoryCommandLoader;
 
 require __DIR__ . '/../../vendor/autoload.php';
 

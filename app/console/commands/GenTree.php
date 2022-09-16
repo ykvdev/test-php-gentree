@@ -54,9 +54,9 @@ class GenTree extends Command
      */
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
-        $this->io->setCommandName($this->getName())->setCommand($this)->setInput($input)->setOutput($output);
+        $this->io->setCommand($this)->setInput($input)->setOutput($output);
         $this->inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
-        $this->outputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
+        $this->outputFilePath = $input->getOption(self::OPTION_OUTPUT_FILE_PATH);
     }
 
     /**
@@ -92,6 +92,7 @@ class GenTree extends Command
             $outputFile->writeFile($tree);
 
             $this->io->outputInfoMessage('The End');
+            return Command::SUCCESS;
         } catch (LogicException $e) {
             $this->io->outputErrorMessage($e->getMessage());
             return Command::INVALID;
@@ -99,8 +100,6 @@ class GenTree extends Command
             $this->io->outputErrorMessage('(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
             return Command::FAILURE;
         }
-
-        return Command::SUCCESS;
     }
 
     /**

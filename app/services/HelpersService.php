@@ -5,8 +5,8 @@ namespace app\services;
 class HelpersService
 {
     /**
-     * @param int $memory
-     * @return string
+     * @param int $memory Bytes
+     * @return string Examples: 125 B, 52.6 Kb, 12 Mb, etc
      */
     public static function formatMemoryBytes(int $memory): string
     {

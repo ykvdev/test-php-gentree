@@ -13,9 +13,6 @@ class ConsoleIoService
     /** @var ConfigService */
     private $config;
 
-    /** @var string */
-    private $commandName;
-
     /** @var Command */
     private $command;
 
@@ -31,16 +28,6 @@ class ConsoleIoService
     public function __construct(ConfigService $config)
     {
         $this->config = $config;
-    }
-
-    /**
-     * @param string $commandName
-     * @return $this
-     */
-    public function setCommandName(string $commandName): self
-    {
-        $this->commandName = $commandName;
-        return $this;
     }
 
     /**
@@ -75,24 +62,20 @@ class ConsoleIoService
 
     /**
      * @param string $msg
-     * @param array|null $params
      * @return void
      */
-    public function outputInfoMessage(string $msg, ?array $params = null): void
+    public function outputInfoMessage(string $msg): void
     {
-        $msg = $this->formatMessage($msg);
-        $this->outputMessage($msg, $params, false);
+        $this->outputMessage($msg);
     }
 
     /**
      * @param string $msg
-     * @param array|null $params
      * @return void
      */
-    public function outputErrorMessage(string $msg, ?array $params = null): void
+    public function outputErrorMessage(string $msg): void
     {
-        $msg = $this->formatMessage($msg, true);
-        $this->outputMessage($msg, $params, true);
+        $this->outputMessage($msg, true);
     }
 
     /**
@@ -109,11 +92,11 @@ class ConsoleIoService
     /**
      * @param string $msg
      * @param bool $isError
-     * @return string
+     * @return void
      */
-    private function formatMessage(string $msg, bool $isError = false): string
+    private function outputMessage(string $msg, bool $isError = false): void
     {
-        return strtr('{datetime} [{type}] {msg} / CPU {cpu}% / {memUsage} Mb of {memAvailable} Mb / Peak {memPeak} Mb', [
+        $msg = strtr('{datetime} [{type}] {msg} / CPU {cpu}% / {memUsage} of {memAvailable} / Peak {memPeak}', [
             '{datetime}' => date('Y-m-d H:i:s'),
             '{type}' => $isError ? 'ERR' : 'INF',
             '{msg}' => $msg,
@@ -122,18 +105,8 @@ class ConsoleIoService
             '{memAvailable}' => HelpersService::formatMemoryBytes(ini_get('memory_limit')),
             '{memPeak}' => HelpersService::formatMemoryBytes(memory_get_peak_usage()),
         ]);
-    }
 
-    /**
-     * @param string $msg
-     * @param array|null $params
-     * @param bool|null $isError
-     * @return void
-     */
-    private function outputMessage(string $msg, ?array $params = null, ?bool $isError = null): void
-    {
-        $msg = $params ? strtr($msg, $params) : $msg;
-        $this->output->writeln(is_null($isError) ? $msg : ($isError ? "<error>$msg</error>" : $msg));
+        $this->output->writeln($isError ? "<error>$msg</error>" : $msg);
         $this->writeLog($msg);
     }
 
@@ -143,7 +116,7 @@ class ConsoleIoService
      */
     private function writeLog(string $msg): void
     {
-        $path = strtr($this->config->get('services.console_io.logs_path'), ['{cmd}' => $this->commandName]);
+        $path = strtr($this->config->get('services.console_io.logs_path'), ['{cmd}' => $this->command->getName()]);
         file_put_contents($path, $msg . PHP_EOL, FILE_APPEND);
     }
 }

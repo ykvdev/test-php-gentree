@@ -26,9 +26,9 @@ class JsonFileAdapter extends AbstractFileAdapter
             $this->writeLine($beginSymbol, $indent);
 
             if(is_scalar($val)) {
-                $this->writeLine($this->makeJsonLine($key, $val), $this->incrementIndent($indent));
+                $this->writeLine($this->makeJsonLine($key, $val), $indent + self::INDENT_SPACES_NUMBER);
             } else {
-                $this->writeFile($val, $this->incrementIndent($indent));
+                $this->writeFile($val, $indent + self::INDENT_SPACES_NUMBER);
             }
 
             $this->writeLine($endSymbol, $indent, -2);
@@ -44,14 +44,5 @@ class JsonFileAdapter extends AbstractFileAdapter
     {
         return json_encode($field, JSON_UNESCAPED_UNICODE)
             . ': ' . json_encode($value, JSON_UNESCAPED_UNICODE) . ',';
-    }
-
-    /**
-     * @param int $indent
-     * @return int
-     */
-    private function incrementIndent(int $indent = 0): int
-    {
-        return $indent + self::INDENT_SPACES_NUMBER;
     }
 }

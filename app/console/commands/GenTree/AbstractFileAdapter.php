@@ -117,7 +117,7 @@ abstract class AbstractFileAdapter
      */
     protected function writeLine($data, int $indent = 0, ?int $position = null): void
     {
-        if(fseek($this->handler, $position, SEEK_CUR) === -1) {
+        if($position && fseek($this->handler, $position, SEEK_CUR) === -1) {
             throw new LogicException("Set file \"$this->path\" position $position failed");
         }
 
