@@ -83,16 +83,14 @@ class GenTree extends Command
                 throw new LogicException('Output file already exists, specify other file name');
             }
 
-            $inputFile = AbstractFileAdapter::factory($this->inputFilePath,AbstractFileAdapter::MODE_READ);
-            $outputFile = AbstractFileAdapter::factory($this->outputFilePath,AbstractFileAdapter::MODE_WRITE);
-
-            $this->io->outputInfoMessage('Reading input file data and making tree');
-            $tree = $this->makeTreeByCsvFile($inputFile);
+            $this->io->outputInfoMessage('Making tree by input file data');
+            $tree = $this->makeTreeByCsvFile();
 
             $this->io->outputInfoMessage('Writing tree into output file');
+            $outputFile = AbstractFileAdapter::factory($this->outputFilePath, AbstractFileAdapter::MODE_WRITE);
             $outputFile->writeFile($tree);
 
-            $this->io->outputInfoMessage('The End');
+            $this->io->outputInfoMessage('Finished');
             return 0;
         } catch (LogicException $e) {
             $this->io->outputErrorMessage($e->getMessage());
@@ -108,19 +106,19 @@ class GenTree extends Command
     }
 
     /**
-     * @param AbstractFileAdapter $csvFileAdapter
      * @param string|null $parent
      * @param string|null $relation
      * @return Generator
      */
-    private function makeTreeByCsvFile(AbstractFileAdapter $csvFileAdapter, ?string $parent = null, ?string $relation = null): Generator
+    private function makeTreeByCsvFile(?string $parent = null, ?string $relation = null): Generator
     {
-        foreach ($csvFileAdapter->readFile() as $row) {
+        $inputFile = AbstractFileAdapter::factory($this->inputFilePath, AbstractFileAdapter::MODE_READ);
+        foreach ($inputFile->readFile() as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
                 yield from [
                     'itemName' => $row['itemName'],
                     'parent' => $row['parent'],
-                    'children' => $this->makeTreeByCsvFile($csvFileAdapter, $row['itemName'], $row['relation']),
+                    'children' => $this->makeTreeByCsvFile($row['itemName'], $row['relation']),
                 ];
             }
         }
