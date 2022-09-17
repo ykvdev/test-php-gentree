@@ -30,31 +30,37 @@ class JsonFileAdapter extends AbstractFileAdapter
     public function writeFile(iterable $data, int $indent = 0, bool $isNeedIndentBeginBrace = true, int $depth = 0): void
     {
         $beginBraceWrote = false;
-        $indentForBeginBrace = $isNeedIndentBeginBrace ? $indent : 0;
         $indentForElements = $indent + self::INDENT_SPACES_NUMBER;
         foreach ($data as $key => $val) {
             if(!$beginBraceWrote) {
                 [$beginBrace, $endBrace] = is_numeric($key) ? ['[', ']'] : ['{', '}'];
-                $this->writeLine($beginBrace, $indentForBeginBrace);
+                if($isNeedIndentBeginBrace) {
+                    $this->writeLine($beginBrace, $indent);
+                } else {
+                    $this->seek(-1);
+                    $this->writeLine($beginBrace);
+                }
                 $beginBraceWrote = true;
             }
 
-            if($field = $this->makeJsonField($key, $val)) {
+            if($field = $this->makeJsonField($key, $val ?: null)) {
                 $this->writeLine($field, $indentForElements);
             }
 
             if(is_iterable($val)) {
-                if($field) {
-                    $this->seek(-1);
-                }
-
                 $this->writeFile($val, $indentForElements, !$field, $depth + 1);
             }
+
+            $this->seek(-1);
+            $this->writeLine(',');
         }
 
         if($beginBraceWrote) {
+            $this->seek(-2);
+            $this->writeLine(); // Write EOL
             $this->writeLine($endBrace, $indentForElements - self::INDENT_SPACES_NUMBER);
         } else {
+            $this->seek(-1);
             $this->writeLine('[]');
         }
 
@@ -73,7 +79,7 @@ class JsonFileAdapter extends AbstractFileAdapter
     {
         return (
             (is_string($field) ? $this->encodeJsonString($field) . ': ' : '')
-            . (is_scalar($value) || is_null($value) ? $this->encodeJsonString($value) . ',' : '')
+            . (is_scalar($value) || is_null($value) ? $this->encodeJsonString($value) : '')
         ) ?: null;
     }
 

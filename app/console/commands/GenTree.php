@@ -115,7 +115,7 @@ class GenTree extends Command
         $inputFile = AbstractFileAdapter::factory($this->inputFilePath, AbstractFileAdapter::MODE_READ);
         foreach ($inputFile->readFile() as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
-                yield from [
+                yield [
                     'itemName' => $row['itemName'],
                     'parent' => $row['parent'],
                     'children' => $this->makeTreeByCsvFile($row['itemName'], $row['relation']),

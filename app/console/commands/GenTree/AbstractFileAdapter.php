@@ -114,11 +114,11 @@ abstract class AbstractFileAdapter
     }
 
     /**
-     * @param string|int|float $data
+     * @param string|int|float|null $data
      * @param int $indent
      * @return void
      */
-    protected function writeLine($data, int $indent = 0): void
+    protected function writeLine($data = null, int $indent = 0): void
     {
         if(fputs($this->handler, str_repeat(' ', $indent) . $data . PHP_EOL) === false) {
             throw new LogicException("Write file \"$this->path\" failed");
