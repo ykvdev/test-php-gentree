@@ -116,20 +116,46 @@ abstract class AbstractFileAdapter
     /**
      * @param string|int|float $data
      * @param int $indent
-     * @param int|null $position
      * @return void
      */
-    protected function writeLine($data, int $indent = 0, ?int $position = null): void
+    protected function writeLine($data, int $indent = 0): void
     {
-        if($position && fseek($this->handler, $position, SEEK_CUR) === -1) {
-            throw new LogicException("Set file \"$this->path\" position $position failed");
-        }
-
         if(fputs($this->handler, str_repeat(' ', $indent) . $data . PHP_EOL) === false) {
             throw new LogicException("Write file \"$this->path\" failed");
         }
 
         fflush($this->handler);
+    }
+
+    /**
+     * @param int $offset
+     * @param int $whence
+     * @return void
+     */
+    protected function seek(int $offset, int $whence = SEEK_CUR): void
+    {
+        if(fseek($this->handler, $offset, $whence) === -1) {
+            throw new LogicException("Set file \"$this->path\" position to $offset failed");
+        }
+    }
+
+    /**
+     * @param int $size
+     * @return void
+     */
+    protected function truncate(int $size): void
+    {
+        if(!ftruncate($this->handler, $size)) {
+            throw new LogicException("Truncate file \"$this->path\" to size $size failed");
+        }
+    }
+
+    /**
+     * @return false|int
+     */
+    protected function getSize()
+    {
+        return filesize($this->path);
     }
 
     public function __destruct()
