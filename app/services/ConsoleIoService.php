@@ -19,6 +19,9 @@ class ConsoleIoService
     /** @var InputInterface */
     private $input;
 
+    /** @var QuestionHelper */
+    private $questionHelper;
+
     /** @var OutputInterface */
     private $output;
 
@@ -40,6 +43,7 @@ class ConsoleIoService
     public function setCommand(Command $command): self
     {
         $this->command = $command;
+        $this->questionHelper = $command->getHelper('question');
         return $this;
     }
 
@@ -94,7 +98,6 @@ class ConsoleIoService
         $msg = $this->formatMessage($msg, 'ERR');
         $this->output->writeln("<error>$msg</error>");
         $this->writeLog($msg);
-        $this->prevMsg = $msg;
     }
 
     /**
@@ -104,12 +107,10 @@ class ConsoleIoService
     public function outputQuestion(string $question): bool
     {
         $question = $this->formatMessage($question, 'QST');
-        $this->writeLog($question);
-        $this->prevMsg = $question;
+        $isAccept = $this->questionHelper->ask($this->input, $this->output, new ConfirmationQuestion($question));
+        $this->writeLog($question . ($isAccept ? 'y' : 'n'));
 
-        /** @var QuestionHelper $questionHelper */
-        $questionHelper = $this->command->getHelper('question');
-        return $questionHelper->ask($this->input, $this->output, new ConfirmationQuestion($question));
+        return $isAccept;
     }
 
     /**
