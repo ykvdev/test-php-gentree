@@ -14,11 +14,16 @@ class CsvFileAdapter extends AbstractFileAdapter
     /**
      * @inheritDoc
      */
-    public function readFile(): ?Generator
+    public function readFile(?int $maxLinesNumber = null): ?Generator
     {
-        $lineNumber = 0;
+        $lineNumber = 1;
         while ($line = $this->readLine()) {
-            if($lineNumber++ != 0) {
+            if($maxLinesNumber && $lineNumber - 1 > $maxLinesNumber) {
+                $this->isTooManyLines = true;
+                break;
+            }
+
+            if($lineNumber != 1) {
                 [$itemName, $type, $parent, $relation] = str_getcsv($line, ';');
                 yield [
                     'itemName' => trim($itemName),
@@ -27,6 +32,8 @@ class CsvFileAdapter extends AbstractFileAdapter
                     'relation' => trim($relation) ?? null,
                 ];
             }
+
+            $lineNumber++;
         }
     }
 

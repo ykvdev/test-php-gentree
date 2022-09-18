@@ -35,6 +35,9 @@ abstract class AbstractFileAdapter
     /** @var int */
     private $rwBytes = 0;
 
+    /** @var bool */
+    protected $isTooManyLines = false;
+
     /**
      * @param string $path
      * @param string $mode
@@ -112,9 +115,10 @@ abstract class AbstractFileAdapter
     }
 
     /**
+     * @param int|null $maxLinesNumber
      * @return Generator|null|void
      */
-    abstract public function readFile();
+    abstract public function readFile(?int $maxLinesNumber = null);
 
     /**
      * @param iterable $data
@@ -226,6 +230,14 @@ abstract class AbstractFileAdapter
     public function getMode(): string
     {
         return $this->mode;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isTooManyLines(): bool
+    {
+        return $this->isTooManyLines;
     }
 
     /**

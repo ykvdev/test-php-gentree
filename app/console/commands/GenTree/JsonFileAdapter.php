@@ -15,7 +15,7 @@ class JsonFileAdapter extends AbstractFileAdapter
     /**
      * @inheritDoc
      */
-    public function readFile()
+    public function readFile(?int $maxLinesNumber = null)
     {
         throw new LogicException('JSON file reading not supported');
     }

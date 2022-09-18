@@ -22,6 +22,8 @@ class GenTree extends Command
         OPTION_INPUT_FILE_PATH = 'input',
         OPTION_OUTPUT_FILE_PATH = 'output';
 
+    private const INPUT_FILE_MAX_LINES_NUMBER = 20000;
+
     /** @var ConsoleIoService */
     private $io;
 
@@ -99,6 +101,11 @@ class GenTree extends Command
             $this->outputFile->writeFile($tree);
             $this->io->outputEol();
 
+            if($this->inputFile->isTooManyLines()) {
+                $this->io->outputWarningMessage('Output file has too many lines, read only first '
+                    . self::INPUT_FILE_MAX_LINES_NUMBER . ' lines');
+            }
+
             $this->io->outputInfoMessage('Finished');
             return 0;
         } catch (LogicException $e) {
@@ -122,7 +129,7 @@ class GenTree extends Command
     private function makeTreeByInputFile(?string $parent = null, ?string $relation = null): Generator
     {
         $this->inputFile->setPosition(0, SEEK_SET);
-        foreach ($this->inputFile->readFile() as $row) {
+        foreach ($this->inputFile->readFile(self::INPUT_FILE_MAX_LINES_NUMBER) as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
                 $position = $this->inputFile->getPosition();
                 yield [

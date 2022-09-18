@@ -93,6 +93,17 @@ class ConsoleIoService
      * @param string $msg
      * @return void
      */
+    public function outputWarningMessage(string $msg): void
+    {
+        $msg = $this->formatMessage($msg, 'WRN');
+        $this->output->writeln("<comment>$msg</comment>");
+        $this->writeLog($msg);
+    }
+
+    /**
+     * @param string $msg
+     * @return void
+     */
     public function outputErrorMessage(string $msg): void
     {
         $msg = $this->formatMessage($msg, 'ERR');
