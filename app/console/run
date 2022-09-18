@@ -5,15 +5,14 @@ namespace app\console;
 
 use DI\Container;
 use Symfony\Component\Console\Application;
-use app\console\commands\GenTree;
+use app\console\commands\GenTreeCommand;
 use Symfony\Component\Console\CommandLoader\FactoryCommandLoader;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
 $di = new Container;
 $app = new Application('Tree Generator', '1.0');
-//$app->add($di->get(GenTree::class));
 $app->setCommandLoader(new FactoryCommandLoader([
-    GenTree::COMMAND_NAME => function() use($di) { return $di->get(GenTree::class); },
+    GenTreeCommand::COMMAND_NAME => function() use($di) { return $di->get(GenTreeCommand::class); },
 ]));
 $app->run();

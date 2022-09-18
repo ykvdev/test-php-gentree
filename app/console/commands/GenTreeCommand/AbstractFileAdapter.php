@@ -1,6 +1,6 @@
 <?php
 
-namespace app\console\commands\GenTree;
+namespace app\console\commands\GenTreeCommand;
 
 use Closure;
 use finfo;
@@ -61,31 +61,37 @@ abstract class AbstractFileAdapter
     {
         $this->path = $path;
         $this->mode = $mode;
+    }
 
-        if(!in_array($mode, static::MODES)) {
-            throw new LogicException("Mode \"$mode\" for file \"$this->path\" is not available");
+    /**
+     * @return void
+     */
+    public function validateAndOpen(): void
+    {
+        if(!in_array($this->mode, static::MODES)) {
+            throw new LogicException("Mode \"$this->mode\" for file \"$this->path\" is not available");
         }
 
-        switch ($mode) {
+        switch ($this->mode) {
             case self::MODE_READ:
-                clearstatcache(true, $path);
+                clearstatcache(true, $this->path);
 
-                if(!is_file($path)) {
-                    throw new LogicException("File \"$path\" not found");
+                if(!is_file($this->path)) {
+                    throw new LogicException("File \"$this->path\" not found");
                 }
 
-                if(!is_readable($path)) {
-                    throw new LogicException("File \"$path\" is not readable");
+                if(!is_readable($this->path)) {
+                    throw new LogicException("File \"$this->path\" is not readable");
                 }
 
-                $mimeType = (new finfo(FILEINFO_MIME_TYPE))->file($path);
+                $mimeType = (new finfo(FILEINFO_MIME_TYPE))->file($this->path);
                 if(!in_array($mimeType, static::MIME_TYPES)) {
-                    throw new LogicException("File \"$path\" MIME-type is wrong");
+                    throw new LogicException("File \"$this->path\" MIME-type is wrong");
                 }
                 break;
 
             case self::MODE_WRITE:
-                $dirPath = dirname($path);
+                $dirPath = dirname($this->path);
                 clearstatcache(true, $dirPath);
 
                 if(!is_dir($dirPath)) {
@@ -98,11 +104,11 @@ abstract class AbstractFileAdapter
                 break;
 
             default:
-                throw new LogicException("File mode \"$mode\" is not available");
+                throw new LogicException("File mode \"$this->mode\" is not available");
         }
 
-        if (($this->handler = fopen($path, $mode)) === false) {
-            throw new LogicException("File \"$path\" open failed");
+        if (($this->handler = fopen($this->path, $this->mode)) === false) {
+            throw new LogicException("File \"$this->path\" open failed");
         }
     }
 

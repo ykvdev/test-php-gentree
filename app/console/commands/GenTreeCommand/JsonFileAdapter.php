@@ -1,6 +1,6 @@
 <?php
 
-namespace app\console\commands\GenTree;
+namespace app\console\commands\GenTreeCommand;
 
 use LogicException;
 

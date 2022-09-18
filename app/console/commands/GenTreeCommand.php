@@ -2,7 +2,7 @@
 
 namespace app\console\commands;
 
-use app\console\commands\GenTree\AbstractFileAdapter;
+use app\console\commands\GenTreeCommand\AbstractFileAdapter;
 use app\services\ConsoleIoService;
 use app\services\HelpersService;
 use Closure;
@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
-class GenTree extends Command
+class GenTreeCommand extends Command
 {
     public const COMMAND_NAME = 'gentree',
         COMMAND_DESC = 'Tree Generator',
@@ -27,10 +27,10 @@ class GenTree extends Command
     /** @var ConsoleIoService */
     private $io;
 
-    /** @var AbstractFileAdapter */
+    /** @var AbstractFileAdapter|null */
     private $inputFile;
 
-    /** @var AbstractFileAdapter */
+    /** @var AbstractFileAdapter|null */
     private $outputFile;
 
     /**
@@ -60,6 +60,14 @@ class GenTree extends Command
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
         $this->io->setCommand($this)->setInput($input)->setOutput($output);
+
+        if($inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH)) {
+            $this->inputFile = AbstractFileAdapter::factory($inputFilePath, AbstractFileAdapter::MODE_READ);
+        }
+
+        if($outputFilePath = $input->getOption(self::OPTION_OUTPUT_FILE_PATH)) {
+            $this->outputFile = AbstractFileAdapter::factory($outputFilePath, AbstractFileAdapter::MODE_WRITE);
+        }
     }
 
     /**
@@ -71,28 +79,25 @@ class GenTree extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
-            $outputFilePath = $input->getOption(self::OPTION_OUTPUT_FILE_PATH);
-
             $this->io->outputInfoMessage(implode(' | ', [
                 strtr('{cmd} started', ['{cmd}' => self::COMMAND_DESC]),
                 strtr('Group {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
                 strtr('User {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
-                strtr('Input file {inputFilePath}', ['{inputFilePath}' => $inputFilePath ?? '(none)']),
-                strtr('Output file {outputFilePath}', ['{outputFilePath}' => $outputFilePath ?? '(none)']),
+                strtr('Input file {inputFilePath}', ['{inputFilePath}' => $this->inputFile ? $this->inputFile->getPath() : '(none)']),
+                strtr('Output file {outputFilePath}', ['{outputFilePath}' => $this->outputFile ? $this->outputFile->getPath() : '(none)']),
             ]));
 
-            if(!$inputFilePath || !$outputFilePath) {
+            if(!$this->inputFile || !$this->outputFile) {
                 throw new LogicException('You must specify -i and -o params with file paths');
             }
 
-            if(is_file($outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this (y/n)? ')) {
+            if(is_file($this->outputFile->getPath()) && !$this->io->outputQuestion('Output file already exists, rewrite this (y/n)? ')) {
                 throw new LogicException('Output file already exists, specify other file name');
             }
 
             $this->io->outputInfoMessage('Opening files');
-            $this->inputFile = AbstractFileAdapter::factory($inputFilePath, AbstractFileAdapter::MODE_READ);
-            $this->outputFile = AbstractFileAdapter::factory($outputFilePath, AbstractFileAdapter::MODE_WRITE);
+            $this->inputFile->validateAndOpen();
+            $this->outputFile->validateAndOpen();
 
             $this->inputFile->setProgressRwCallback($this->getFileRwProgressCallback());
             $tree = $this->makeTreeByInputFile();
@@ -122,6 +127,20 @@ class GenTree extends Command
     }
 
     /**
+     * @return Closure
+     */
+    private function getFileRwProgressCallback(): Closure
+    {
+        return function() {
+            $this->io->outputInfoMessage(strtr('Read {readSize} of {fileSize} from input file and write tree {writeSize} to output file', [
+                '{readSize}' => HelpersService::formatMemoryBytes($this->inputFile->getRwSize()),
+                '{fileSize}' => HelpersService::formatMemoryBytes($this->inputFile->getSize()),
+                '{writeSize}' => HelpersService::formatMemoryBytes($this->outputFile->getRwSize()),
+            ]), true, true);
+        };
+    }
+
+    /**
      * @param string|null $parent
      * @param string|null $relation
      * @return Generator
@@ -140,19 +159,5 @@ class GenTree extends Command
                 $this->inputFile->setPosition($position, SEEK_SET);
             }
         }
-    }
-
-    /**
-     * @return Closure
-     */
-    private function getFileRwProgressCallback(): Closure
-    {
-        return function() {
-            $this->io->outputInfoMessage(strtr('Read {readSize} of {fileSize} from input file and write tree {writeSize} to output file', [
-                '{readSize}' => HelpersService::formatMemoryBytes($this->inputFile->getRwSize()),
-                '{fileSize}' => HelpersService::formatMemoryBytes($this->inputFile->getSize()),
-                '{writeSize}' => HelpersService::formatMemoryBytes($this->outputFile->getRwSize()),
-            ]), true, true);
-        };
     }
 }
