@@ -37,7 +37,7 @@ class JsonFileAdapter extends AbstractFileAdapter
                 if($isNeedIndentBeginBrace) {
                     $this->writeLine($beginBrace, $indent);
                 } else {
-                    $this->seek(-1);
+                    $this->setPosition(-1);
                     $this->writeLine($beginBrace);
                 }
                 $beginBraceWrote = true;
@@ -51,16 +51,16 @@ class JsonFileAdapter extends AbstractFileAdapter
                 $this->writeFile($val, $indentForElements, !$field, $depth + 1);
             }
 
-            $this->seek(-1);
+            $this->setPosition(-1);
             $this->writeLine(',');
         }
 
         if($beginBraceWrote) {
-            $this->seek(-2);
+            $this->setPosition(-2);
             $this->writeLine(); // Write EOL
             $this->writeLine($endBrace, $indentForElements - self::INDENT_SPACES_NUMBER);
         } else {
-            $this->seek(-1);
+            $this->setPosition(-1);
             $this->writeLine('[]');
         }
 

@@ -108,7 +108,7 @@ abstract class AbstractFileAdapter
     /**
      * @return string|false
      */
-    protected function readLine()
+    public function readLine()
     {
         return !feof($this->handler) ? fgets($this->handler) : false;
     }
@@ -118,7 +118,7 @@ abstract class AbstractFileAdapter
      * @param int $indent
      * @return void
      */
-    protected function writeLine($data = null, int $indent = 0): void
+    public function writeLine($data = null, int $indent = 0): void
     {
         if(fputs($this->handler, str_repeat(' ', $indent) . $data . PHP_EOL) === false) {
             throw new LogicException("Write file \"$this->path\" failed");
@@ -128,22 +128,10 @@ abstract class AbstractFileAdapter
     }
 
     /**
-     * @param int $offset
-     * @param int $whence
-     * @return void
-     */
-    protected function seek(int $offset, int $whence = SEEK_CUR): void
-    {
-        if(fseek($this->handler, $offset, $whence) === -1) {
-            throw new LogicException("Set file \"$this->path\" position to $offset failed");
-        }
-    }
-
-    /**
      * @param int $size
      * @return void
      */
-    protected function truncate(int $size): void
+    public function truncate(int $size): void
     {
         if(!ftruncate($this->handler, $size)) {
             throw new LogicException("Truncate file \"$this->path\" to size $size failed");
@@ -153,7 +141,31 @@ abstract class AbstractFileAdapter
     /**
      * @return false|int
      */
-    protected function getSize()
+    public function getPosition()
+    {
+        if(($position = ftell($this->handler)) === false) {
+            throw new LogicException("Get file \"$this->path\" position failed");
+        }
+
+        return $position;
+    }
+
+    /**
+     * @param int $offset
+     * @param int $whence
+     * @return void
+     */
+    public function setPosition(int $offset, int $whence = SEEK_CUR): void
+    {
+        if(fseek($this->handler, $offset, $whence) === -1) {
+            throw new LogicException("Set file \"$this->path\" position to $offset failed");
+        }
+    }
+
+    /**
+     * @return false|int
+     */
+    public function getSize()
     {
         return filesize($this->path);
     }
