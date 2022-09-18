@@ -32,6 +32,9 @@ abstract class AbstractFileAdapter
     /** @var int */
     private $progressRwCallbackLastCalledTime;
 
+    /** @var int */
+    private $rwBytes = 0;
+
     /**
      * @param string $path
      * @param string $mode
@@ -127,6 +130,10 @@ abstract class AbstractFileAdapter
     {
         $str = !feof($this->handler) ? fgets($this->handler) : false;
 
+        if(($position = $this->getPosition()) > $this->rwBytes) {
+            $this->rwBytes = $position;
+        }
+
         $this->callRwCallback();
 
         return $str;
@@ -139,11 +146,13 @@ abstract class AbstractFileAdapter
      */
     public function writeLine($data = null, int $indent = 0): void
     {
-        if(fputs($this->handler, str_repeat(' ', $indent) . $data . PHP_EOL) === false) {
+        $data = str_repeat(' ', $indent) . $data . PHP_EOL;
+        if(fputs($this->handler, $data) === false) {
             throw new LogicException("Write file \"$this->path\" failed");
         }
-
         fflush($this->handler);
+
+        $this->rwBytes += $data ? strlen($data) : 0;
 
         $this->callRwCallback();
     }
@@ -157,6 +166,8 @@ abstract class AbstractFileAdapter
         if(!ftruncate($this->handler, $size)) {
             throw new LogicException("Truncate file \"$this->path\" to size $size failed");
         }
+
+        $this->rwBytes = $size;
 
         $this->callRwCallback();
     }
@@ -191,6 +202,30 @@ abstract class AbstractFileAdapter
     public function getSize()
     {
         return filesize($this->path);
+    }
+
+    /**
+     * @return int
+     */
+    public function getRwSize(): int
+    {
+        return $this->rwBytes;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPath(): string
+    {
+        return $this->path;
+    }
+
+    /**
+     * @return string
+     */
+    public function getMode(): string
+    {
+        return $this->mode;
     }
 
     /**

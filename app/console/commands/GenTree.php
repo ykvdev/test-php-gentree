@@ -4,6 +4,8 @@ namespace app\console\commands;
 
 use app\console\commands\GenTree\AbstractFileAdapter;
 use app\services\ConsoleIoService;
+use app\services\HelpersService;
+use Closure;
 use Exception;
 use Generator;
 use LogicException;
@@ -23,11 +25,11 @@ class GenTree extends Command
     /** @var ConsoleIoService */
     private $io;
 
-    /** @var string */
-    private $inputFilePath;
+    /** @var AbstractFileAdapter */
+    private $inputFile;
 
-    /** @var string */
-    private $outputFilePath;
+    /** @var AbstractFileAdapter */
+    private $outputFile;
 
     /**
      * @param ConsoleIoService $io
@@ -45,8 +47,8 @@ class GenTree extends Command
     {
         $this->setName(self::COMMAND_NAME)
             ->setDescription(self::COMMAND_DESC)
-            ->addOption(self::OPTION_INPUT_FILE_PATH, 'i', InputOption::VALUE_REQUIRED, 'Source CSV file')
-            ->addOption(self::OPTION_OUTPUT_FILE_PATH, 'o', InputOption::VALUE_REQUIRED, 'Destination JSON file');
+            ->addOption(self::OPTION_INPUT_FILE_PATH, 'i', InputOption::VALUE_REQUIRED, 'Source file')
+            ->addOption(self::OPTION_OUTPUT_FILE_PATH, 'o', InputOption::VALUE_REQUIRED, 'Destination file');
     }
 
     /**
@@ -56,8 +58,6 @@ class GenTree extends Command
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
         $this->io->setCommand($this)->setInput($input)->setOutput($output);
-        $this->inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
-        $this->outputFilePath = $input->getOption(self::OPTION_OUTPUT_FILE_PATH);
     }
 
     /**
@@ -69,33 +69,34 @@ class GenTree extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
+            $inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH);
+            $outputFilePath = $input->getOption(self::OPTION_OUTPUT_FILE_PATH);
+
             $this->io->outputInfoMessage(implode(' | ', [
                 strtr('{cmd} started', ['{cmd}' => self::COMMAND_DESC]),
                 strtr('Group {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
                 strtr('User {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
-                strtr('Input file {inputFilePath}', ['{inputFilePath}' => $this->inputFilePath ?? '(none)']),
-                strtr('Output file {outputFilePath}', ['{outputFilePath}' => $this->outputFilePath ?? '(none)']),
+                strtr('Input file {inputFilePath}', ['{inputFilePath}' => $inputFilePath ?? '(none)']),
+                strtr('Output file {outputFilePath}', ['{outputFilePath}' => $outputFilePath ?? '(none)']),
             ]));
 
-            if(!$this->inputFilePath || !$this->outputFilePath) {
+            if(!$inputFilePath || !$outputFilePath) {
                 throw new LogicException('You must specify -i and -o params with file paths');
             }
 
-            if(is_file($this->outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this (y/n)? ')) {
+            if(is_file($outputFilePath) && !$this->io->outputQuestion('Output file already exists, rewrite this (y/n)? ')) {
                 throw new LogicException('Output file already exists, specify other file name');
             }
 
             $this->io->outputInfoMessage('Opening files');
-            $inputFile = AbstractFileAdapter::factory($this->inputFilePath, AbstractFileAdapter::MODE_READ);
-            $outputFile = AbstractFileAdapter::factory($this->outputFilePath, AbstractFileAdapter::MODE_WRITE);
+            $this->inputFile = AbstractFileAdapter::factory($inputFilePath, AbstractFileAdapter::MODE_READ);
+            $this->outputFile = AbstractFileAdapter::factory($outputFilePath, AbstractFileAdapter::MODE_WRITE);
 
-            $this->io->outputInfoMessage('Making tree by input file data');
-            $tree = $this->makeTreeByCsvFile($inputFile);
+            $this->inputFile->setProgressRwCallback($this->getFileRwProgressCallback());
+            $tree = $this->makeTreeByInputFile();
 
-            $inputFile->setProgressRwCallback(function () {
-                $this->io->outputInfoMessage('Writing tree into output file', true, true);
-            });
-            $outputFile->writeFile($tree);
+            $this->outputFile->setProgressRwCallback($this->getFileRwProgressCallback());
+            $this->outputFile->writeFile($tree);
             $this->io->outputEol();
 
             $this->io->outputInfoMessage('Finished');
@@ -114,24 +115,37 @@ class GenTree extends Command
     }
 
     /**
-     * @param AbstractFileAdapter $fileAdapter
      * @param string|null $parent
      * @param string|null $relation
      * @return Generator
      */
-    private function makeTreeByCsvFile(AbstractFileAdapter $fileAdapter, ?string $parent = null, ?string $relation = null): Generator
+    private function makeTreeByInputFile(?string $parent = null, ?string $relation = null): Generator
     {
-        $fileAdapter->setPosition(0, SEEK_SET);
-        foreach ($fileAdapter->readFile() as $row) {
+        $this->inputFile->setPosition(0, SEEK_SET);
+        foreach ($this->inputFile->readFile() as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
-                $position = $fileAdapter->getPosition();
+                $position = $this->inputFile->getPosition();
                 yield [
                     'itemName' => $row['itemName'],
                     'parent' => $row['parent'],
-                    'children' => $this->makeTreeByCsvFile($fileAdapter, $row['itemName'], $row['relation']),
+                    'children' => $this->makeTreeByInputFile($row['itemName'], $row['relation']),
                 ];
-                $fileAdapter->setPosition($position, SEEK_SET);
+                $this->inputFile->setPosition($position, SEEK_SET);
             }
         }
+    }
+
+    /**
+     * @return Closure
+     */
+    private function getFileRwProgressCallback(): Closure
+    {
+        return function() {
+            $this->io->outputInfoMessage(strtr('Read {readSize} of {fileSize} from input file and write tree {writeSize} to output file', [
+                '{readSize}' => HelpersService::formatMemoryBytes($this->inputFile->getRwSize()),
+                '{fileSize}' => HelpersService::formatMemoryBytes($this->inputFile->getSize()),
+                '{writeSize}' => HelpersService::formatMemoryBytes($this->outputFile->getRwSize()),
+            ]), true, true);
+        };
     }
 }
