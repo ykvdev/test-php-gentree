@@ -69,7 +69,7 @@ class GenTree extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $this->io->outputInfoMessage(implode(' / ', [
+            $this->io->outputInfoMessage(implode(' | ', [
                 strtr('{cmd} started', ['{cmd}' => self::COMMAND_DESC]),
                 strtr('Group {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
                 strtr('User {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
@@ -93,7 +93,7 @@ class GenTree extends Command
             $tree = $this->makeTreeByCsvFile($inputFile);
 
             $inputFile->setProgressRwCallback(function () {
-                $this->io->outputInfoMessage('Writing tree into output file', true);
+                $this->io->outputInfoMessage('Writing tree into output file', true, true);
             });
             $outputFile->writeFile($tree);
             $this->io->outputEol();

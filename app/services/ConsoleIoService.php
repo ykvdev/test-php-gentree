@@ -66,11 +66,23 @@ class ConsoleIoService
     /**
      * @param string $msg
      * @param bool $isUpdatable
+     * @param bool $withPerformance
      * @return void
      */
-    public function outputInfoMessage(string $msg, bool $isUpdatable = false): void
+    public function outputInfoMessage(string $msg, bool $isUpdatable = false, bool $withPerformance = false): void
     {
-        $this->outputMessage($msg, false, $isUpdatable);
+        $msg = $this->formatMessage($msg, 'INF', $withPerformance);
+
+        if($isUpdatable) {
+            $placeholderRepeatTimes = mb_strlen($this->prevMsg) - mb_strlen($msg);
+            $this->output->write("\r$msg" . ($placeholderRepeatTimes > 0 ? str_repeat(' ', $placeholderRepeatTimes) : ''));
+        } else {
+            $this->output->writeln($msg);
+        }
+
+        $this->writeLog($msg);
+
+        $this->prevMsg = $msg;
     }
 
     /**
@@ -79,7 +91,10 @@ class ConsoleIoService
      */
     public function outputErrorMessage(string $msg): void
     {
-        $this->outputMessage($msg, true);
+        $msg = $this->formatMessage($msg, 'ERR');
+        $this->output->writeln("<error>$msg</error>");
+        $this->writeLog($msg);
+        $this->prevMsg = $msg;
     }
 
     /**
@@ -88,6 +103,10 @@ class ConsoleIoService
      */
     public function outputQuestion(string $question): bool
     {
+        $question = $this->formatMessage($question, 'QST');
+        $this->writeLog($question);
+        $this->prevMsg = $question;
+
         /** @var QuestionHelper $questionHelper */
         $questionHelper = $this->command->getHelper('question');
         return $questionHelper->ask($this->input, $this->output, new ConfirmationQuestion($question));
@@ -103,33 +122,22 @@ class ConsoleIoService
 
     /**
      * @param string $msg
-     * @param bool $isError
-     * @return void
+     * @param string $type
+     * @param bool $withPerformance
+     * @return string
      */
-    private function outputMessage(string $msg, bool $isError = false, bool $isUpdatable = false): void
+    private function formatMessage(string $msg, string $type, bool $withPerformance = false): string
     {
-        $msg = strtr('{datetime} [{type}] {msg} / CPU {cpu}% / Memory usage {memUsage} / Memory peak {memPeak}', [
-            '{datetime}' => date('Y-m-d H:i:s'),
-            '{type}' => $isError ? 'ERR' : 'INF',
-            '{msg}' => $msg,
-            '{cpu}' => sys_getloadavg()[0],
-            '{memUsage}' => HelpersService::formatMemoryBytes(memory_get_usage()),
-            '{memPeak}' => HelpersService::formatMemoryBytes(memory_get_peak_usage()),
-        ]);
-
-        if($isUpdatable) {
-            $placeholderRepeatTimes = mb_strlen($this->prevMsg) - mb_strlen($msg);
-            $this->output->write(
-                ($isError ? "<error>\r$msg</error>" : "\r$msg")
-                . ($placeholderRepeatTimes > 0 ? str_repeat(' ', $placeholderRepeatTimes) : '')
-            );
-        } else {
-            $this->output->writeln($isError ? "<error>$msg</error>" : $msg);
+        $msg = date('Y-m-d H:i:s') . ' [' . $type . '] ' . $msg;
+        if($withPerformance) {
+            $msg .= strtr(' | CPU {cpu}% | Memory usage {memUsage} | Memory peak {memPeak}', [
+                '{cpu}' => sys_getloadavg()[0],
+                '{memUsage}' => HelpersService::formatMemoryBytes(memory_get_usage()),
+                '{memPeak}' => HelpersService::formatMemoryBytes(memory_get_peak_usage()),
+            ]);
         }
 
-        $this->writeLog($msg);
-
-        $this->prevMsg = $msg;
+        return $msg;
     }
 
     /**
