@@ -4,6 +4,7 @@ namespace app\console\commands;
 
 use app\console\commands\GenTree\AbstractFileAdapter;
 use app\services\ConsoleIoService;
+use Exception;
 use Generator;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
@@ -63,6 +64,7 @@ class GenTree extends Command
      * @param InputInterface $input
      * @param OutputInterface $output
      * @return int
+     * @throws Exception
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -90,8 +92,11 @@ class GenTree extends Command
             $this->io->outputInfoMessage('Making tree by input file data');
             $tree = $this->makeTreeByCsvFile($inputFile);
 
-            $this->io->outputInfoMessage('Writing tree into output file');
+            $inputFile->setProgressRwCallback(function () {
+                $this->io->outputInfoMessage('Writing tree into output file', true);
+            });
             $outputFile->writeFile($tree);
+            $this->io->outputEol();
 
             $this->io->outputInfoMessage('Finished');
             return 0;

@@ -2,6 +2,7 @@
 
 namespace app\console\commands\GenTree;
 
+use Closure;
 use finfo;
 use Generator;
 use LogicException;
@@ -24,6 +25,12 @@ abstract class AbstractFileAdapter
 
     /** @var resource|null */
     private $handler;
+
+    /** @var Closure|null */
+    private $progressRwCallback;
+
+    /** @var int */
+    private $progressRwCallbackLastCalledTime;
 
     /**
      * @param string $path
@@ -94,6 +101,14 @@ abstract class AbstractFileAdapter
     }
 
     /**
+     * @param Closure|null $progressRwCallback
+     */
+    public function setProgressRwCallback(?Closure $progressRwCallback): void
+    {
+        $this->progressRwCallback = $progressRwCallback;
+    }
+
+    /**
      * @return Generator|null|void
      */
     abstract public function readFile();
@@ -110,7 +125,11 @@ abstract class AbstractFileAdapter
      */
     public function readLine()
     {
-        return !feof($this->handler) ? fgets($this->handler) : false;
+        $str = !feof($this->handler) ? fgets($this->handler) : false;
+
+        $this->callRwCallback();
+
+        return $str;
     }
 
     /**
@@ -125,6 +144,8 @@ abstract class AbstractFileAdapter
         }
 
         fflush($this->handler);
+
+        $this->callRwCallback();
     }
 
     /**
@@ -136,6 +157,8 @@ abstract class AbstractFileAdapter
         if(!ftruncate($this->handler, $size)) {
             throw new LogicException("Truncate file \"$this->path\" to size $size failed");
         }
+
+        $this->callRwCallback();
     }
 
     /**
@@ -168,6 +191,18 @@ abstract class AbstractFileAdapter
     public function getSize()
     {
         return filesize($this->path);
+    }
+
+    /**
+     * @return void
+     */
+    private function callRwCallback(): void
+    {
+        $time = time();
+        if($this->progressRwCallback && $time > $this->progressRwCallbackLastCalledTime) {
+            $this->progressRwCallbackLastCalledTime = $time;
+            ($this->progressRwCallback)();
+        }
     }
 
     public function __destruct()
