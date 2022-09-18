@@ -12,6 +12,7 @@
         "ext-json": "*",
         "ext-fileinfo": "*",
         "ext-posix": "*",
+        "ext-mbstring": "*",
         "symfony/console": "^4.4",
         "php-di/php-di": "^6.0"
     },
