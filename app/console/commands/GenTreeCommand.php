@@ -20,7 +20,7 @@ class GenTreeCommand extends Command
     public const COMMAND_NAME = 'gentree',
         COMMAND_DESC = 'Tree Generator',
         OPTION_INPUT_FILE_PATH = 'input',
-        OPTION_INPUT_FILE_LINES_LIMIT = 'input-lines',
+        OPTION_INPUT_FILE_LINES_LIMIT = 'input-lines-limit',
         OPTION_OUTPUT_FILE_PATH = 'output',
         EXIT_CODE_SUCCESS = 0,
         EXIT_CODE_FAILURE = 1,
@@ -95,6 +95,7 @@ class GenTreeCommand extends Command
                 strtr('Group {gid}:{group}', ['{gid}' => getmygid(), '{group}' => posix_getgrgid(posix_getgid())['name']]),
                 strtr('User {uid}:{user}', ['{uid}' => getmyuid(), '{user}' => get_current_user()]),
                 strtr('Input file {inputFilePath}', ['{inputFilePath}' => $this->inputFile ? $this->inputFile->getPath() : '(none)']),
+                strtr('Input file lines limit {inputFileLimit}', ['{inputFileLimit}' => $this->inputFileLinesLimit]),
                 strtr('Output file {outputFilePath}', ['{outputFilePath}' => $this->outputFile ? $this->outputFile->getPath() : '(none)']),
             ]));
 
