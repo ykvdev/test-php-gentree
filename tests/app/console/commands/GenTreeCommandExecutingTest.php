@@ -122,4 +122,14 @@ final class GenTreeCommandExecutingTest extends TestCase
         $this->assertFileExists(self::APP_DATA_PATH . '/output.json');
         $this->assertGreaterThan(400, filesize(self::APP_DATA_PATH . '/output.json'));
     }
+
+    /**
+     * @return void
+     */
+    protected function tearDown(): void
+    {
+        if(file_exists(self::APP_DATA_PATH . '/output.json')) {
+            unlink(self::APP_DATA_PATH . '/output.json');
+        }
+    }
 }
