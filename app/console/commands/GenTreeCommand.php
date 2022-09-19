@@ -20,15 +20,20 @@ class GenTreeCommand extends Command
     public const COMMAND_NAME = 'gentree',
         COMMAND_DESC = 'Tree Generator',
         OPTION_INPUT_FILE_PATH = 'input',
-        OPTION_OUTPUT_FILE_PATH = 'output';
-
-    private const INPUT_FILE_MAX_LINES_NUMBER = 20000;
+        OPTION_INPUT_FILE_LINES_LIMIT = 'input-lines',
+        OPTION_OUTPUT_FILE_PATH = 'output',
+        EXIT_CODE_SUCCESS = 0,
+        EXIT_CODE_FAILURE = 1,
+        EXIT_CODE_INVALID = 2;
 
     /** @var ConsoleIoService */
     private $io;
 
     /** @var AbstractFileAdapter|null */
     private $inputFile;
+
+    /** @var int */
+    private $inputFileLinesLimit;
 
     /** @var AbstractFileAdapter|null */
     private $outputFile;
@@ -49,8 +54,12 @@ class GenTreeCommand extends Command
     {
         $this->setName(self::COMMAND_NAME)
             ->setDescription(self::COMMAND_DESC)
-            ->addOption(self::OPTION_INPUT_FILE_PATH, 'i', InputOption::VALUE_REQUIRED, 'Source file')
-            ->addOption(self::OPTION_OUTPUT_FILE_PATH, 'o', InputOption::VALUE_REQUIRED, 'Destination file');
+            ->addOption(self::OPTION_INPUT_FILE_PATH, 'i',
+                InputOption::VALUE_REQUIRED, 'Source file')
+            ->addOption(self::OPTION_INPUT_FILE_LINES_LIMIT, 'l',
+                InputOption::VALUE_REQUIRED, 'Source file lines limit', 20000)
+            ->addOption(self::OPTION_OUTPUT_FILE_PATH, 'o',
+                InputOption::VALUE_REQUIRED, 'Destination file');
     }
 
     /**
@@ -64,6 +73,8 @@ class GenTreeCommand extends Command
         if($inputFilePath = $input->getOption(self::OPTION_INPUT_FILE_PATH)) {
             $this->inputFile = AbstractFileAdapter::factory($inputFilePath, AbstractFileAdapter::MODE_READ);
         }
+
+        $this->inputFileLinesLimit = $input->getOption(self::OPTION_INPUT_FILE_LINES_LIMIT);
 
         if($outputFilePath = $input->getOption(self::OPTION_OUTPUT_FILE_PATH)) {
             $this->outputFile = AbstractFileAdapter::factory($outputFilePath, AbstractFileAdapter::MODE_WRITE);
@@ -96,8 +107,8 @@ class GenTreeCommand extends Command
             }
 
             $this->io->outputInfoMessage('Opening files');
-            $this->inputFile->validateAndOpen();
-            $this->outputFile->validateAndOpen();
+            $this->inputFile->open();
+            $this->outputFile->open();
 
             $this->inputFile->setProgressRwCallback($this->getFileRwProgressCallback());
             $tree = $this->makeTreeByInputFile();
@@ -107,22 +118,21 @@ class GenTreeCommand extends Command
             $this->io->outputEol();
 
             if($this->inputFile->isTooManyLines()) {
-                $this->io->outputWarningMessage('Output file has too many lines, read only first '
-                    . self::INPUT_FILE_MAX_LINES_NUMBER . ' lines');
+                $this->io->outputWarningMessage("Input file has too many lines, read only first $this->inputFileLinesLimit lines");
             }
 
             $this->io->outputInfoMessage('Finished');
-            return 0;
+            return self::EXIT_CODE_SUCCESS;
         } catch (LogicException $e) {
             $this->io->outputErrorMessage($e->getMessage());
-            return 2;
+            return self::EXIT_CODE_INVALID;
         } catch (Throwable $e) {
             $this->io->outputErrorMessage(
                 '(' . get_class($e) . ') ' . $e->getMessage() . PHP_EOL
                 . $e->getFile() . ':' . $e->getLine() . PHP_EOL
                 . $e->getTraceAsString()
             );
-            return 1;
+            return self::EXIT_CODE_FAILURE;
         }
     }
 
@@ -148,7 +158,7 @@ class GenTreeCommand extends Command
     private function makeTreeByInputFile(?string $parent = null, ?string $relation = null): Generator
     {
         $this->inputFile->setPosition(0, SEEK_SET);
-        foreach ($this->inputFile->readFile(self::INPUT_FILE_MAX_LINES_NUMBER) as $row) {
+        foreach ($this->inputFile->readFile($this->inputFileLinesLimit) as $row) {
             if($row['parent'] == $parent || ($relation && $row['parent'] == $relation)) {
                 $position = $this->inputFile->getPosition();
                 yield [

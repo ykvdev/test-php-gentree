@@ -66,7 +66,7 @@ abstract class AbstractFileAdapter
     /**
      * @return void
      */
-    public function validateAndOpen(): void
+    public function open(): void
     {
         if(!in_array($this->mode, static::MODES)) {
             throw new LogicException("Mode \"$this->mode\" for file \"$this->path\" is not available");
